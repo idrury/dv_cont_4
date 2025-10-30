@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/vite.svg"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>dv_contiuous_4</title>
+  </head>
+  <body>
+    <div style="margin: 10px 50px 10px 50px">
+      <h1>
+        Average game attendance by home team
+      </h1>
+    </div>
+    <div id="vis_1"></div>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script type="module">
+      /****************************
+       *  Set up SVG canvas
+       */
+      var margin = {
+          top: 20,
+          right: 20,
+          bottom: 130,
+          left: 100,
+        },
+        width =
+          window.innerWidth -
+          50 -
+          margin.left -
+          margin.right,
+        height =
+          window.innerHeight -
+          window.innerHeight / 5 -
+          margin.top -
+          margin.bottom;
+
+      var svg = d3
+        .select("#vis_1")
+        .append("svg")
+        .attr(
+          "width",
+          width + margin.left + margin.right
+        )
+        .attr(
+          "height",
+          height + margin.top + margin.bottom
+        )
+        .append("g")
+        .attr(
+          "transform",
+          "translate(" +
+            margin.left +
+            "," +
+            margin.top +
+            ")"
+        );
+
+      /**********************************
+       * Load data from CSV file
+       */
+      d3.csv(
+        "TeamAttendance.csv",
+        function (data) {
+          // Group data by HomeTeam and attendance
+          const groupedData = [];
+          data.forEach(function (game) {
+            const homeTeam = game.HomeTeam;
+            const attendance = parseInt(
+              game.Attendance
+            );
+
+            const team = groupedData.find(
+              (t) => t.HomeTeam === homeTeam
+            );
+            if (team) {
+              team.Attendance += attendance;
+              team.Count += 1;
+            } else {
+              groupedData.push({
+                HomeTeam: homeTeam,
+                Attendance: attendance,
+                Count: 1,
+              });
+            }
+
+            groupedData.sort(function (a, b) {
+              return (
+                b.Attendance / b.Count -
+                a.Attendance / a.Count
+              );
+            });
+          });
+
+          console.log(groupedData);
+
+          /****************************
+           *  Create the x axis
+           */
+          var x = d3
+            .scaleBand()
+            .domain(
+              groupedData.map(function (t) {
+                return t.HomeTeam;
+              })
+            )
+            .range([0, width]);
+
+          var xAxis = d3.axisBottom(x);
+
+          /****************************
+           *  Create the y axis
+           */
+          var y = d3
+            .scaleLinear()
+            .range([height, 0]);
+          y.domain([
+            0,
+            d3.max(groupedData, function (d) {
+              return d.Attendance / d.Count;
+            }),
+          ]); // d3.hist has to be called before the Y axis obviously
+          svg.append("g").call(d3.axisLeft(y));
+
+          svg
+            .selectAll("rect")
+            .data(groupedData)
+            .enter()
+            .append("rect")
+            .attr("x", 1)
+            .attr("transform", function (d) {
+              return (
+                "translate(" +
+                x(d.HomeTeam) +
+                "," +
+                y(d.Attendance / d.Count) +
+                ")"
+              );
+            })
+            .attr("width", x.bandwidth() - 1)
+            .attr("height", function (d) {
+              return (
+                height - y(d.Attendance / d.Count)
+              );
+            })
+            .style("fill", "#69b3a2");
+
+          /****************************
+           *  Append axises on to svg
+           */
+          svg
+            .append("g")
+            .attr(
+              "transform",
+              "translate(0," + height + ")"
+            ) // Position the axis at the bottom
+            .call(xAxis)
+            .selectAll("text")
+            .attr("transform", "rotate(-45)")
+            .style("text-anchor", "end") // Aligns the end of the text with the anchor point
+            .attr("dx", "-.9em") // Adjusts horizontal position
+            .attr("dy", ".15em") // Adjusts vertical position
+            .attr(
+              "font-size",
+              "12px"
+            ); /* Rotate the x axis labels */
+        }
+      );
+    </script>
+  </body>
+</html>
