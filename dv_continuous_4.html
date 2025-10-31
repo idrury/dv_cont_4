@@ -2,11 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link
-      rel="icon"
-      type="image/svg+xml"
-      href="/vite.svg"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
     />
+    <link rel="stylesheet" href="style.css" />
+
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0"
@@ -14,12 +16,31 @@
     <title>dv_contiuous_4</title>
   </head>
   <body>
-    <div style="margin: 10px 50px 10px 50px">
-      <h1>
-        Average game attendance by home team
-      </h1>
+    <div class="vis-background">
+      <div id="vis-1" class="vis-1">
+        <h1 style="margin: 30px 50px 10px 50px">
+          Average game attendance by home team
+        </h1>
+      </div>
+      <div class="p-10">
+        <h2>Conclusions</h2>
+        <p>
+          From the bar chart, it is evident that certain teams
+          consistently attract higher average attendances for their
+          home games. This could be attributed to factors such as team
+          performance, fan base size, and stadium capacity.
+        </p>
+
+        <p>
+          Collingwood stands out as the team with the highest average
+          attendances, indicating strong local support and effective
+          fan engagement strategies. Conversely, Gold Coast and GWS
+          have very low average attendances, and may need to explore
+          ways to boost fan interest and improve the game-day
+          experience to attract more spectators.
+        </p>
+      </div>
     </div>
-    <div id="vis_1"></div>
     <script src="https://d3js.org/d3.v4.js"></script>
     <script type="module">
       /****************************
@@ -32,147 +53,214 @@
           left: 100,
         },
         width =
-          window.innerWidth -
-          50 -
-          margin.left -
-          margin.right,
-        height =
-          window.innerHeight -
-          window.innerHeight / 5 -
-          margin.top -
-          margin.bottom;
+          document.body.offsetWidth - margin.left - margin.right,
+        height = 500;
 
       var svg = d3
-        .select("#vis_1")
+        .select("#vis-1")
         .append("svg")
-        .attr(
-          "width",
-          width + margin.left + margin.right
-        )
-        .attr(
-          "height",
-          height + margin.top + margin.bottom
-        )
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr(
           "transform",
-          "translate(" +
-            margin.left +
-            "," +
-            margin.top +
-            ")"
+          "translate(" + margin.left + "," + margin.top + ")"
         );
 
       /**********************************
        * Load data from CSV file
        */
-      d3.csv(
-        "TeamAttendance.csv",
-        function (data) {
-          // Group data by HomeTeam and attendance
-          const groupedData = [];
-          data.forEach(function (game) {
-            const homeTeam = game.HomeTeam;
-            const attendance = parseInt(
-              game.Attendance
-            );
+      d3.csv("TeamAttendance.csv", function (data) {
+        // Group data by HomeTeam and attendance
+        const groupedData = [];
+        data.forEach(function (game) {
+          const homeTeam = game.HomeTeam;
+          const attendance = parseInt(game.Attendance);
 
-            const team = groupedData.find(
-              (t) => t.HomeTeam === homeTeam
-            );
-            if (team) {
-              team.Attendance += attendance;
-              team.Count += 1;
-            } else {
-              groupedData.push({
-                HomeTeam: homeTeam,
-                Attendance: attendance,
-                Count: 1,
-              });
-            }
-
-            groupedData.sort(function (a, b) {
-              return (
-                b.Attendance / b.Count -
-                a.Attendance / a.Count
-              );
+          const team = groupedData.find(
+            (t) => t.HomeTeam === homeTeam
+          );
+          if (team) {
+            team.Attendance += attendance;
+            team.Count += 1;
+          } else {
+            groupedData.push({
+              HomeTeam: homeTeam,
+              Attendance: attendance,
+              Count: 1,
             });
+          }
+
+          groupedData.sort(function (a, b) {
+            return b.Attendance / b.Count - a.Attendance / a.Count;
+          });
+        });
+
+        console.log(groupedData);
+
+        /****************************
+         *  Create the x axis
+         */
+        var x = d3
+          .scaleBand()
+          .domain(
+            groupedData.map(function (t) {
+              return t.HomeTeam;
+            })
+          )
+          .range([0, width]);
+
+        var xAxis = d3.axisBottom(x);
+
+        /****************************
+         *  Create the y axis
+         */
+        var y = d3.scaleLinear().range([height, 0]);
+        y.domain([
+          0,
+          d3.max(groupedData, function (d) {
+            return d.Attendance / d.Count;
+          }),
+        ]);
+        svg
+          .append("g")
+          .call(d3.axisLeft(y))
+          .transition()
+          .duration(750)
+          .selectAll("text")
+          .attr("font-size", "12px")
+          .attr("font-family", "roboto");
+
+        /**
+         * Add title to Y axis
+         */
+        svg
+          .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 0 - margin.left + 20)
+          .attr("x", 0 - height / 2)
+          .attr("dy", "1em")
+          .attr("font-family", "roboto")
+          .attr("font-size", "12px")
+          .attr("font-weight", "bold")
+          .text("Average Attendance");
+
+        /**
+         * Add title to X axis
+         */
+        svg
+          .append("text")
+          .attr("y", height + margin.bottom - 30)
+          .attr("x", width / 2 - 80)
+          .attr("font-family", "roboto")
+          .attr("font-size", "12px")
+          .attr("font-weight", "bold")
+          .text("Home team (name)");
+
+        /***************************************
+         * Draw bars
+         */
+        svg
+          .selectAll("rect")
+          .data(groupedData)
+          .enter()
+          .append("rect")
+          .attr("x", 0)
+          .attr("id", function (d, i) {
+            return `bar-${i}`;
+          })
+          .attr("transform", function (d) {
+            return (
+              "translate(" + x(d.HomeTeam) + "," + (height - 5) + ")"
+            );
+          })
+          .attr("width", x.bandwidth() - 5)
+          .attr("height", function (d) {
+            return 0;
+          })
+          .transition()
+          .duration(500)
+          .delay((d, i) => i * 50)
+          .attr("x", 1)
+          .attr("transform", function (d) {
+            return (
+              "translate(" +
+              x(d.HomeTeam) +
+              "," +
+              y(d.Attendance / d.Count) +
+              ")"
+            );
+          })
+          .attr("width", x.bandwidth() - 5)
+          .attr("height", function (d) {
+            return height - y(d.Attendance / d.Count) + 5;
+          })
+          .attr("class", "bar-fill")
+          .style("fill", function (d, i) {
+            const max = d3.max(groupedData, function (d) {
+              return d.Attendance / d.Count;
+            });
+            console.log(
+              Math.round((d.Attendance / d.Count / max) * 80 + 20)
+            );
+            return `rgb(10%,65%,70%,${Math.round(
+              (d.Attendance / d.Count / max) * 70 + 30
+            )}%)`;
           });
 
-          console.log(groupedData);
+        /****************************
+         *  Append x axis onto svg
+         */
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")") // Position the axis at the bottom
+          .call(xAxis)
+          .transition()
+          .duration(750)
+          /* Rotate the x axis labels */
+          .selectAll("text")
+          .attr("transform", "rotate(-45)")
+          .style("text-anchor", "end")
+          .attr("dx", "-.9em")
+          .attr("dy", ".15em")
+          .attr("font-size", "12px")
+          .attr("font-family", "roboto");
 
-          /****************************
-           *  Create the x axis
-           */
-          var x = d3
-            .scaleBand()
-            .domain(
-              groupedData.map(function (t) {
-                return t.HomeTeam;
-              })
-            )
-            .range([0, width]);
+        /***********************************
+         * Add labels on each bar
+         */
+        svg
+          .selectAll(".bar-label")
+          .data(groupedData)
+          .enter()
+          .append("text")
+          .attr("x", function (d) {
+            return x(d.HomeTeam) + (x.bandwidth() - 1) / 2;
+          })
+          .attr("y", function (d) {
+            return y(d.Attendance / d.Count) + 20;
+          })
+          .attr("text-anchor", "middle")
+          .attr("font-size", "12px")
+          .attr("font-family", "roboto")
+          .attr("font-weight", "bold")
+          .attr("opacity", 0)
+          .transition()
+          .duration(500)
+          .delay((d, i) => i * 50 + 300) // Staggered entry
+          .attr("opacity", 1)
+          .attr("class", "bar-label")
+          .text(function (d) {
+            return Math.round(d.Attendance / d.Count);
+          });
+      });
 
-          var xAxis = d3.axisBottom(x);
-
-          /****************************
-           *  Create the y axis
-           */
-          var y = d3
-            .scaleLinear()
-            .range([height, 0]);
-          y.domain([
-            0,
-            d3.max(groupedData, function (d) {
-              return d.Attendance / d.Count;
-            }),
-          ]); // d3.hist has to be called before the Y axis obviously
-          svg.append("g").call(d3.axisLeft(y));
-
-          svg
-            .selectAll("rect")
-            .data(groupedData)
-            .enter()
-            .append("rect")
-            .attr("x", 1)
-            .attr("transform", function (d) {
-              return (
-                "translate(" +
-                x(d.HomeTeam) +
-                "," +
-                y(d.Attendance / d.Count) +
-                ")"
-              );
-            })
-            .attr("width", x.bandwidth() - 1)
-            .attr("height", function (d) {
-              return (
-                height - y(d.Attendance / d.Count)
-              );
-            })
-            .style("fill", "#69b3a2");
-
-          /****************************
-           *  Append axises on to svg
-           */
-          svg
-            .append("g")
-            .attr(
-              "transform",
-              "translate(0," + height + ")"
-            ) // Position the axis at the bottom
-            .call(xAxis)
-            .selectAll("text")
-            .attr("transform", "rotate(-45)")
-            .style("text-anchor", "end") // Aligns the end of the text with the anchor point
-            .attr("dx", "-.9em") // Adjusts horizontal position
-            .attr("dy", ".15em") // Adjusts vertical position
-            .attr(
-              "font-size",
-              "12px"
-            ); /* Rotate the x axis labels */
-        }
-      );
+      /*********************************************************************
+       * Sources:
+       * d3.js library:         https://d3js.org/
+       * How to style rects:    https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect
+       * How to do transitions: https://d3js.org/d3-axis
+       * */
     </script>
   </body>
 </html>
