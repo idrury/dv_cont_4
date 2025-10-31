@@ -1,0 +1,42 @@
+body {
+    margin: 5vh 20vw
+}
+
+h1 {
+    font-family: 'Roboto', sans-serif;
+    color: #111111
+}
+h2 {
+    font-family: 'Roboto', sans-serif;
+    color: #111111
+}
+p {
+    font-size: 10pt;
+    font-family: 'Roboto', sans-serif;
+    color: #111111
+}
+.bar-fill {
+  rx: 5px; /* Horizontal radius */
+  ry: 5px; /* Vertical radius */
+  clip-path: inset(0 0px 5px 0px); 
+}
+
+.tick line {
+    stroke: #777777;
+}
+
+.domain {
+    stroke: #777777;
+    border-radius: 10px;
+}
+
+.vis-background {
+    background: #eeeeee;
+    border: 1px solid #999999;
+    border-radius: 5px;
+}
+
+
+.p-10 {
+    padding: 10px;
+}
